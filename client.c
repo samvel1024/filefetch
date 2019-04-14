@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "err.h"
+#include "dto.h"
 
 int initialize(char *host, char *port) {
   // 'converting' host/port in string to struct addrinfo
@@ -21,12 +22,12 @@ int initialize(char *host, char *port) {
   else if (err != 0) // other error (host not found, etc.)
     fatal("getaddrinfo: %s", gai_strerror(err));
 
-  // initialize socket according to getaddrinfo results
+  // initialize file_desc according to getaddrinfo results
   int sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol);
   if (sock < 0)
-    syserr("socket");
+    syserr("file_desc");
 
-  // connect socket to the server
+  // connect file_desc to the server
   if (connect(sock, addr_result->ai_addr, addr_result->ai_addrlen) < 0)
     syserr("connect");
 
@@ -37,18 +38,30 @@ int initialize(char *host, char *port) {
 int main(int argc, char *argv[]) {
   int sock = initialize(argv[1], argv[2]);
 
-  int number;
-
-  while (scanf("%d", &number) == 1) { // read all numbers from the standard input
-
-    printf("sending number %d\n", number);
-
-    char *data_to_send = "arbabik";
-    if (write(sock, &data_to_send, 7) != 7)
+  uint16_t header = htons(1);
+  write(sock, &header, sizeof(uint16_t));
+  int file_id, begin, size;
+  while (scanf("%d %d %d", &file_id, &begin, &size) == 3) { // read all numbers from the standard input
+    header = htons(2);
+    sock = initialize(argv[1], argv[2]);
+    write(sock, &header, sizeof(uint16_t));
+    req_file req;
+    req.name_len = file_id;
+    req.start_pos = begin;
+    req.byte_count = size;
+    req_file bik = req;
+    req_file_hton(&bik);
+    if (write(sock, &bik, sizeof(req_file)) != sizeof(req_file)) {
       syserr("partial / failed write");
+    }
+    printf("Sent\n");
+    char buff[1000];
+    memset(buff, 'a', 1000);
+    if (write(sock, buff, req.byte_count) != req.byte_count) syserr("pizdec");
+
   }
 
-  if (close(sock) < 0) // socket would be closed anyway when the program ends
+  if (close(sock) < 0) // file_desc would be closed anyway when the program ends
     syserr("close");
 
   return 0;

@@ -2,6 +2,7 @@
 #include <memory.h>
 #include <event.h>
 #include <stdlib.h>
+#include "util.h"
 #include <assert.h>
 
 #define CHECK_EQUAL(a, b) assert(a == b)
@@ -24,6 +25,15 @@ void test_serialize_deserialize() {
   CHECK_EQUAL(30, test.start_pos);
 }
 
+void test_scan() {
+  struct for_each_file_acc acc;
+  memset(&acc, 0, sizeof(acc));
+  acc.file_desc = STDOUT_FILENO;
+  for_each_file("./", &acc, for_each_file_measure);
+  for_each_file("./", &acc, for_each_file_send);
+}
+
 int main() {
   test_serialize_deserialize();
+  test_scan();
 }
