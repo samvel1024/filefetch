@@ -4,9 +4,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
+#include <stdlib.h>
 
 #include "err.h"
 #include "dto.h"
+#include "util.h"
+
 
 int initialize(char *host, char *port) {
   // 'converting' host/port in string to struct addrinfo
@@ -35,34 +39,48 @@ int initialize(char *host, char *port) {
   return sock;
 }
 
+int fetch_file_list(char *host, char *port, char *buff) {
+  int sock = initialize(host, port);
+  type_header th = {.type = 1};
+  ELSE_RETURN(type_header_send(&th, sock));
+  type_header resp;
+  ELSE_RETURN(type_header_receive(sock, &resp));
+  assert(resp.type == 1 && "Unexpected response");
+  res_list res;
+  ELSE_RETURN(res_list_receive(sock, &res));
+  if (res.length > 0){
+    read_whole_payload(sock, buff, res.length);
+    pretty_print(buff, res.length);
+  }
+  return 0;
+}
+
+
+
 int main(int argc, char *argv[]) {
-  int sock = initialize(argv[1], argv[2]);
+  char *file_list = malloc(FILE_LIST_BUFF);
+  char *file_name_buff = malloc(FILE_NAME_BUFF);
+  ELSE_RETURN(fetch_file_list(argv[1], argv[2], file_list));
 
-  uint16_t header = htons(1);
-  write(sock, &header, sizeof(uint16_t));
-  int file_id, begin, size;
-  while (scanf("%d %d %d", &file_id, &begin, &size) == 3) { // read all numbers from the standard input
-    header = htons(2);
+  int file_id, begin, end, sock;
+  while (scanf("%d %d %d", &file_id, &begin, &end) == 3) { // read all numbers from the standard input
     sock = initialize(argv[1], argv[2]);
-    write(sock, &header, sizeof(uint16_t));
-    req_file req;
-    req.name_len = file_id;
-    req.start_pos = begin;
-    req.byte_count = size;
-    req_file bik = req;
-    req_file_hton(&bik);
-    if (write(sock, &bik, sizeof(req_file)) != sizeof(req_file)) {
-      syserr("partial / failed write");
-    }
-    printf("Sent\n");
-    char buff[1000];
-    memset(buff, 'a', 1000);
-    if (write(sock, buff, req.byte_count) != req.byte_count) syserr("pizdec");
 
+    //Send type header
+    type_header hd = {.type = 2};
+    type_header_send(&hd, sock);
+
+    //Send the request
+    req_file req;
+    req.name_len = get_segment(file_id - 1, file_list, file_name_buff);
+    req.start_pos = begin;
+    req.byte_count = end - begin;
+    ELSE_RETURN(req_file_send(&req, sock));
+    ELSE_RETURN(write(sock, file_name_buff, req.name_len));
   }
 
   if (close(sock) < 0) // file_desc would be closed anyway when the program ends
     syserr("close");
-
+  free(file_list);
   return 0;
 }

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <arpa/inet.h>
+#include "util.h"
 
 #define NETSTRUCT_dec_uint32_t(n)  uint32_t n;
 #define NETSTRUCT_dec_uint16_t(n)  uint16_t n;
@@ -32,7 +33,21 @@
     void name##_ntoh(struct name *t) { \
         NETSTRUCT_GET(__VA_ARGS__, NETSTRUCT4, NETSTRUCT3, NETSTRUCT2, NETSTRUCT1) \
             (ntoh, __VA_ARGS__) \
+    } \
+    int name##_send(struct name *t, int sock) { \
+      name a = *t; \
+      name##_hton(&a); \
+      if (write(sock, &a, sizeof(name)) < 0) return -1; \
+      return 0; \
+    } \
+    int name##_receive(int sock, struct name *t) { \
+      if (read_whole_payload(sock, (char*)t, sizeof(name)) < 0) return -1; \
+      name##_ntoh(t); \
+      return 0; \
     }
+
+NETSTRUCT(type_header,
+          (uint16_t, type))
 
 NETSTRUCT(req_file,
           (uint32_t, start_pos),
@@ -58,6 +73,10 @@ typedef enum res_error_type {
   BAD_FILE_SIZE
 } res_error_type;
 
-typedef enum dto_type {
-  RES_LIST, RES_ERR, RES_FILE, REQ_LIST, REQ_FILE
-} dto_type;
+typedef enum resp_dto_header {
+  RES_LIST = 1, RES_ERR, RES_FILE,
+} resp_dto_header;
+
+typedef enum req_dto_header {
+  REQ_LIST = 1, REQ_FILE
+} req_dto_header;

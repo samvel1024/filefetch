@@ -33,7 +33,20 @@ void test_scan() {
   for_each_file("./", &acc, for_each_file_send);
 }
 
+void test_segment(){
+  char buff[100];
+  char *str = "ar|ba|bik|jpuct";
+  assert(get_segment(2, str, buff) == 3);
+  assert(strcmp(buff, "bik") == 0);
+
+  assert(get_segment(3, str, buff) == 5);
+  assert(strcmp(buff, "jpuct") == 0);
+
+  assert(get_segment(4, str, buff) == -1);
+}
+
 int main() {
   test_serialize_deserialize();
   test_scan();
+  test_segment();
 }
