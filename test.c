@@ -46,7 +46,7 @@ void test_segment() {
   assert(get_file_name(4, str, buff) == -1);
 }
 
-int test_buffered_read(){
+int test_buffered_read() {
   int fd;
   TRY(fd = open("CMakeCache.txt", O_RDWR | O_CREAT, S_IRUSR));
   lseek(fd, 10000000, SEEK_SET);
@@ -61,7 +61,6 @@ int test_buffered_read(){
   return 0;
 
 }
-
 
 int main() {
   return test_scan();

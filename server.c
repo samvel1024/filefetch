@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
       type_header head;
       int bytes_read;
       TRY(bytes_read = type_header_receive(client_sock, &head));
-      if (bytes_read == 0){
+      if (bytes_read == 0) {
         close(client_sock);
         break;
       }

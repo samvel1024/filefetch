@@ -5,8 +5,7 @@
 #include <string.h>
 #include "err.h"
 
-void syserr(const char *fmt, ...)
-{
+void syserr(const char *fmt, ...) {
   va_list fmt_args;
   int errno1 = errno;
 
@@ -18,8 +17,7 @@ void syserr(const char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-void fatal(const char *fmt, ...)
-{
+void fatal(const char *fmt, ...) {
   va_list fmt_args;
 
   fprintf(stderr, "ERROR: ");

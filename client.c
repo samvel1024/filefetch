@@ -52,13 +52,13 @@ int fetch_file_list(int sock, char *buff) {
   if (res.length > 0) {
     read_whole_payload(sock, buff, res.length);
     pretty_print(buff, res.length);
-  }else {
+  } else {
     printf("No files to serve");
   }
   return res.length;
 }
 
-int fetch_file(int sock, char *file_list){
+int fetch_file(int sock, char *file_list) {
   char *file_name = malloc(FILE_NAME_BUFF_SIZE);
   char *read_write_buff = malloc(READ_WRITE_BUFF_SIZE);
 
@@ -118,7 +118,6 @@ int fetch_file(int sock, char *file_list){
   free(read_write_buff);
   return 0;
 }
-
 
 int main(int argc, char *argv[]) {
   char *file_list = malloc(FILE_LIST_BUFF);
