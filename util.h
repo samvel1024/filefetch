@@ -105,7 +105,7 @@ int get_file_name(int index, char *str, char *ans) {
     } else if (current == index) {
       int len = length(str + i, '|');
       memcpy(ans, str + i, len);
-      ans[len + 1] = '\0';
+      ans[len] = '\0';
       return len;
     }
   }

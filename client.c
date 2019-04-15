@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   long file_id, begin, end, sock;
   while (scanf("%ld %ld %ld", &file_id, &begin, &end) == 3) { // read all numbers from the standard input
 
-    if (get_file_name(file_id - 1, file_list, read_write_buff) < 0) {
+    if (get_file_name(file_id - 1, file_list, file_name) < 0) {
       printf("Illegal file number\n");
       continue;
     } else if (begin < 0) {

@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
       case REQ_FILE: {
         req_file f;
         IF_NEGATIVE_RETURN(req_file_receive(client_sock, &f));
-        printf("Req file %d %d %d, reading %d bytes\n", f.byte_count, f.name_len, f.start_pos, f.byte_count);
         read_whole_payload(client_sock, read_buff, f.name_len);
+        printf("Requested file size=%d name_len=%d from_pos=%d name=%s\n", f.byte_count, f.name_len, f.start_pos, read_buff);
         if (f.byte_count == 0) {
           send_error(client_sock, ERR_BAD_FILE_SIZE);
           break;
