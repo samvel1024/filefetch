@@ -9,12 +9,14 @@
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define FILE_LIST_BUFF 16842751
-#define FILE_NAME_BUFF 10000
+#define READ_BUFF_SIZE 10000
 
-
-#define ELSE_RETURN(call) if ((call) < 0) return -1
+#define IF_NEGATIVE_RETURN(call) if ((call) < 0) return -1
+#define NULL_RETURN(call) if ((call) == NULL) return -1
 
 struct for_each_file_acc {
   int file_count;
@@ -40,7 +42,7 @@ int for_each_file_send(struct for_each_file_acc *acc, struct dirent *d) {
       acc->buffer[len] = '|';
       len += 1;
     }
-    acc->buffer[len+1] = '\0';
+    acc->buffer[len + 1] = '\0';
     if (write(acc->file_desc, acc->buffer, len) < 0) {
       return -1;
     }
@@ -88,26 +90,52 @@ void pretty_print(char *str, int len) {
   }
 }
 
-
-int length(char *ptr, char end){
+int length(const char *ptr, char end) {
   int ans = 0;
-  while(ptr[ans] != end && ptr[ans] != '\0') ++ans;
+  while (ptr[ans] != end && ptr[ans] != '\0') ++ans;
   return ans;
 }
 
-int get_segment(int index, char *str, char *ans){
+int get_file_name(int index, char *str, char *ans) {
   int current = 0;
-  for(int i=0; str[i] != '\0'; ++i){
-    if (str[i] == '|'){
-      current ++;
-    }else if (current == index){
+  for (int i = 0; str[i] != '\0'; ++i) {
+    if (str[i] == '|') {
+      current++;
+    } else if (current == index) {
       int len = length(str + i, '|');
       memcpy(ans, str + i, len);
-      ans [len + 1] = '\0';
+      ans[len + 1] = '\0';
       return len;
     }
   }
   return -1;
+}
+
+struct buffered_reader {
+  int source_fd;
+  char *buffer;
+  int buffer_max_size;
+  int buffer_filled;
+  int bytes_to_read;
+};
+
+void buffered_reader_init(struct buffered_reader *b, int fd, char *buf, int buf_size, int byte_count){
+  b->source_fd = fd;
+  b->buffer = buf;
+  b->buffer_max_size = buf_size;
+  b->bytes_to_read = byte_count;
+  b->buffer_filled = 0;
+  buf[0] = '\0';
+}
+
+int read_to_buffer(struct buffered_reader *br) {
+  int max_read = br->bytes_to_read < br->buffer_max_size ? br->bytes_to_read : br->buffer_max_size;
+  int read_len;
+  IF_NEGATIVE_RETURN(read_len = read(br->source_fd, br->buffer, max_read));
+  br->buffer[read_len] = '\0';
+  br->buffer_filled = read_len;
+  br->bytes_to_read -= (read_len > 0 ? read_len : br->bytes_to_read);
+  return read_len;
 }
 
 #endif

@@ -33,20 +33,41 @@ void test_scan() {
   for_each_file("./", &acc, for_each_file_send);
 }
 
-void test_segment(){
+void test_segment() {
   char buff[100];
   char *str = "ar|ba|bik|jpuct";
-  assert(get_segment(2, str, buff) == 3);
+  assert(get_file_name(2, str, buff) == 3);
   assert(strcmp(buff, "bik") == 0);
 
-  assert(get_segment(3, str, buff) == 5);
+  assert(get_file_name(3, str, buff) == 5);
   assert(strcmp(buff, "jpuct") == 0);
 
-  assert(get_segment(4, str, buff) == -1);
+  assert(get_file_name(4, str, buff) == -1);
+}
+
+int test_buffered_read(){
+  int fd;
+  IF_NEGATIVE_RETURN(fd = open("CMakeCache.txt", O_RDWR | O_CREAT, S_IRUSR));
+  lseek(fd, 10000000, SEEK_SET);
+  char buf[100];
+  struct buffered_reader
+      br = {.buffer_max_size = 2, .buffer = buf, .bytes_to_read = 20, .source_fd = fd, .buffer_filled = 0};
+
+  while (br.bytes_to_read) {
+    IF_NEGATIVE_RETURN(read_to_buffer(&br));
+    write(STDOUT_FILENO, br.buffer, br.buffer_filled);
+  }
+  return 0;
+
 }
 
 int main() {
-  test_serialize_deserialize();
-  test_scan();
-  test_segment();
+//  test_scan();
+//  test_buffered_read();
+//  test_segment();
+//  test_serialize_deserialize();
+  int fd;
+  IF_NEGATIVE_RETURN(fd = open("bikct", O_RDWR));
+  lseek(fd, 10000000, SEEK_SET);
+  off_t fsize = lseek(fd, 0, SEEK_END);
 }

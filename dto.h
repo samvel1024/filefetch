@@ -68,9 +68,9 @@ NETSTRUCT(res_error,
 );
 
 typedef enum res_error_type {
-  BAD_FILE_NAME = 1,
-  BAD_FILE_PTR,
-  BAD_FILE_SIZE
+  ERR_BAD_FILE_NAME = 1,
+  ERR_BAD_FILE_PTR,
+  ERR_BAD_FILE_SIZE
 } res_error_type;
 
 typedef enum resp_dto_header {
