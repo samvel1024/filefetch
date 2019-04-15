@@ -8,14 +8,12 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "err.h"
 #include "dto.h"
 #include "util.h"
 
 const char *ERROR_MSG[4] = {"", "File name does no longer exist", "Invalid begin address", "Invalid size"};
 
 int initialize(char *host, char *port) {
-  // 'converting' host/port in string to struct addrinfo
   struct addrinfo addr_hints;
   struct addrinfo *addr_result;
   memset(&addr_hints, 0, sizeof(struct addrinfo));
@@ -23,19 +21,15 @@ int initialize(char *host, char *port) {
   addr_hints.ai_socktype = SOCK_STREAM;
   addr_hints.ai_protocol = IPPROTO_TCP;
   int err = getaddrinfo(host, port, &addr_hints, &addr_result);
-  if (err == EAI_SYSTEM) // system error
-    syserr("getaddrinfo: %s", gai_strerror(err));
-  else if (err != 0) // other error (host not found, etc.)
-    fatal("getaddrinfo: %s", gai_strerror(err));
+  if (err == EAI_SYSTEM || err != 0) {
+    fprintf(stderr, "getaddrinfo: %s", gai_strerror(err));
+    exit(EXIT_FAILURE);
+  }
 
-  // initialize file_desc according to getaddrinfo results
-  int sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol);
-  if (sock < 0)
-    syserr("file_desc");
+  int sock;
+  TRY(sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol));
 
-  // connect file_desc to the server
-  if (connect(sock, addr_result->ai_addr, addr_result->ai_addrlen) < 0)
-    syserr("connect");
+  TRY(connect(sock, addr_result->ai_addr, addr_result->ai_addrlen));
 
   freeaddrinfo(addr_result);
   return sock;
@@ -121,10 +115,30 @@ int fetch_file(int sock, char *file_list) {
   return 0;
 }
 
+
+int valid_args(int argc, char *argv[], char **port) {
+  if (argc > 3 || argc < 2) {
+    fprintf(stderr, "Usage netstore-client <dir> [<port>]\n");
+    return -1;
+  }
+  *port = "6543";
+  if (argc == 3) {
+    int p;
+    if (1 != sscanf(argv[2], "%d", &p)) {
+      fprintf(stderr, "Could not read port\n");
+      return -1;
+    }
+    *port = argv[2];
+  }
+  return 0;
+}
+
+
 int main(int argc, char *argv[]) {
   char *file_list = malloc(FILE_LIST_BUFF);
-
-  int sock = initialize(argv[1], argv[2]);
+  char *port;
+  TRY(valid_args(argc, argv, &port));
+  int sock = initialize(argv[1], port);
   int file_len;
   TRY(file_len = fetch_file_list(sock, file_list));
   if (file_len > 0) {

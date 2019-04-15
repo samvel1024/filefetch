@@ -65,6 +65,7 @@ int test_buffered_read() {
 int test_seek(){
   char buf[READ_WRITE_BUFF_SIZE];
   TRY(copy_to_sparse_file(STDIN_FILENO, 10, 3, "sfile", buf));
+  return 0;
 }
 
 int main() {

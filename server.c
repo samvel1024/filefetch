@@ -13,14 +13,13 @@
 #include "util.h"
 
 #define QUEUE_LENGTH     5
-#define PORT_NUM     6543
 
 int init_server(int port) {
   struct sockaddr_in server_address;
 
   int sock = socket(PF_INET, SOCK_STREAM, 0); // creating IPv4 TCP file_desc
   if (sock < 0)
-    syserr("file_desc");
+    exit(1);
 
   server_address.sin_family = AF_INET; // IPv4
   server_address.sin_addr.s_addr = htonl(INADDR_ANY); // listening on all interfaces
