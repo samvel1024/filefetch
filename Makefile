@@ -6,9 +6,6 @@ all: netstore_server netstore_client
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $^
 
-dto.o: dto.h
-	$(CC) $(CFLAGS) -o $@ $^
-
 netstore_server: util.o server.c
 	$(CC) $(CFLAGS) -o $@ $^
 
