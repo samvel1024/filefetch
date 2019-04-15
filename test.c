@@ -61,13 +61,9 @@ int test_buffered_read(){
 
 }
 
+
 int main() {
-//  test_scan();
-//  test_buffered_read();
-//  test_segment();
-//  test_serialize_deserialize();
-  int fd;
-  IF_NEGATIVE_RETURN(fd = open("bikct", O_RDWR));
-  lseek(fd, 10000000, SEEK_SET);
-  off_t fsize = lseek(fd, 0, SEEK_END);
+  char *buf = malloc(READ_WRITE_BUFF_SIZE);
+  IF_NEGATIVE_RETURN(copy_to_sparse_file(STDIN_FILENO, 2, 1, "bik", buf));
+
 }

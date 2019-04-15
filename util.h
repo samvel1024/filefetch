@@ -12,8 +12,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#define FILE_LIST_BUFF 16842751
-#define READ_BUFF_SIZE 10000
+#define FILE_LIST_BUFF 17000000
+#define READ_WRITE_BUFF_SIZE 10000
+#define FILE_NAME_BUFF_SIZE 1100
 
 #define IF_NEGATIVE_RETURN(call) if ((call) < 0) return -1
 #define NULL_RETURN(call) if ((call) == NULL) return -1
@@ -119,7 +120,7 @@ struct buffered_reader {
   int bytes_to_read;
 };
 
-void buffered_reader_init(struct buffered_reader *b, int fd, char *buf, int buf_size, int byte_count){
+void buffered_reader_init(struct buffered_reader *b, int fd, char *buf, uint32_t buf_size, uint32_t byte_count) {
   b->source_fd = fd;
   b->buffer = buf;
   b->buffer_max_size = buf_size;
@@ -136,6 +137,28 @@ int read_to_buffer(struct buffered_reader *br) {
   br->buffer_filled = read_len;
   br->bytes_to_read -= (read_len > 0 ? read_len : br->bytes_to_read);
   return read_len;
+}
+
+int copy_to_sparse_file(int sock, uint32_t begin, uint32_t size, char *file, char *buff) {
+  struct buffered_reader br;
+  buffered_reader_init(&br, sock, buff, READ_WRITE_BUFF_SIZE, size);
+  struct stat st;
+  if (stat("tmp", &st) == -1) {
+    IF_NEGATIVE_RETURN(mkdir("tmp", 0755));
+  } else if (!S_ISDIR(st.st_mode)) {
+    fprintf(stdout, "tmp is already created and is not a directory\n");
+    return -1;
+  }
+  char file_path[FILE_NAME_BUFF_SIZE];
+  sprintf(file_path, "%s%s", "tmp/", file);
+  int fd;
+  IF_NEGATIVE_RETURN(fd = open(file_path, O_RDWR | O_CREAT, 0644));
+  IF_NEGATIVE_RETURN(lseek(fd, begin, SEEK_SET));
+  while (br.bytes_to_read) {
+    IF_NEGATIVE_RETURN(read_to_buffer(&br));
+    write(fd, br.buffer, br.buffer_filled);
+  }
+  return 0;
 }
 
 #endif

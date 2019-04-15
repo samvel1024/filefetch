@@ -49,7 +49,7 @@ int resp_len(int from, int byte_count, int fsize) {
 int main(int argc, char *argv[]) {
   int server_socket = init_server();
   printf("Listening on port %d\n", PORT_NUM);
-  char *read_buff = malloc(READ_BUFF_SIZE);
+  char *read_buff = malloc(READ_WRITE_BUFF_SIZE);
   for (;;) {
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(client_address);
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
         lseek(open_file, f.start_pos, SEEK_SET);
         struct buffered_reader br;
-        buffered_reader_init(&br, open_file, read_buff, READ_BUFF_SIZE, f.byte_count);
+        buffered_reader_init(&br, open_file, read_buff, READ_WRITE_BUFF_SIZE, f.byte_count);
         while (br.bytes_to_read) {
           IF_NEGATIVE_RETURN(read_to_buffer(&br));
           if (br.buffer_filled > 0)

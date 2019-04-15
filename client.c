@@ -57,21 +57,23 @@ int fetch_file_list(char *host, char *port, char *buff) {
   return 0;
 }
 
+
 int main(int argc, char *argv[]) {
   char *file_list = malloc(FILE_LIST_BUFF);
-  char *file_name_buff = malloc(READ_BUFF_SIZE);
+  char *file_name = malloc(FILE_NAME_BUFF_SIZE);
+  char *read_write_buff = malloc(READ_WRITE_BUFF_SIZE);
   IF_NEGATIVE_RETURN(fetch_file_list(argv[1], argv[2], file_list));
 
   long file_id, begin, end, sock;
   while (scanf("%ld %ld %ld", &file_id, &begin, &end) == 3) { // read all numbers from the standard input
 
-    if (get_file_name(file_id-1, file_list, file_name_buff) < 0 ){
+    if (get_file_name(file_id - 1, file_list, read_write_buff) < 0) {
       printf("Illegal file number\n");
       continue;
-    }else if (begin < 0) {
+    } else if (begin < 0) {
       printf("Illegal starting address\n");
       continue;
-    }else if (end < begin) {
+    } else if (end < begin) {
       printf("End address should be greater than begin address\n");
       continue;
     }
@@ -84,11 +86,11 @@ int main(int argc, char *argv[]) {
 
     //Send the request
     req_file req;
-    req.name_len = get_file_name(file_id - 1, file_list, file_name_buff);
+    req.name_len = get_file_name(file_id - 1, file_list, file_name);
     req.start_pos = begin;
     req.byte_count = end - begin;
     IF_NEGATIVE_RETURN(req_file_send(&req, sock));
-    IF_NEGATIVE_RETURN(write(sock, file_name_buff, req.name_len));
+    IF_NEGATIVE_RETURN(write(sock, file_name, req.name_len));
     //Expect the response
     type_header rhd;
     IF_NEGATIVE_RETURN(type_header_receive(sock, &rhd));
@@ -104,10 +106,7 @@ int main(int argc, char *argv[]) {
         res_file fl;
         IF_NEGATIVE_RETURN(res_file_receive(sock, &fl));
         if (fl.length > 0) {
-          char buff[100000];
-          read_whole_payload(sock, buff, fl.length);
-          buff[fl.length] = '\0';
-          printf("%s\n", buff);
+          copy_to_sparse_file(sock, req.start_pos, fl.length, file_name, read_write_buff);
         }
         break;
       }
