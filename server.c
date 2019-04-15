@@ -113,6 +113,7 @@ int main(int argc, char *argv[]) {
           req_file f;
           TRY(req_file_receive(client_sock, &f));
           read_whole_payload(client_sock, read_buff, f.name_len);
+          read_buff[f.name_len] = '\0';
           printf("Requested file size=%d name_len=%d from_pos=%d name=%s\n",
                  f.byte_count,
                  f.name_len,

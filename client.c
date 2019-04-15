@@ -51,6 +51,7 @@ int fetch_file_list(int sock, char *buff) {
   TRY(res_list_receive(sock, &res));
   if (res.length > 0) {
     read_whole_payload(sock, buff, res.length);
+    buff[res.length] = '\0';
     pretty_print(buff, res.length);
   } else {
     printf("No files to serve");
@@ -63,7 +64,7 @@ int fetch_file(int sock, char *file_list) {
   char *read_write_buff = malloc(READ_WRITE_BUFF_SIZE);
 
   long file_id, begin, end;
-  if (scanf("%ld %ld %ld", &file_id, &begin, &end) != 3) { // read all numbers from the standard input
+  if (scanf("%ld %ld %ld", &file_id, &begin, &end) != 3) {
     printf("Illegal input");
   }
   if (get_file_name(file_id - 1, file_list, file_name) < 0) {
@@ -105,6 +106,7 @@ int fetch_file(int sock, char *file_list) {
       res_file fl;
       TRY(res_file_receive(sock, &fl));
       if (fl.length > 0) {
+        printf("req_file : %d %d %d\n", req.name_len, req.start_pos, req.byte_count);
         copy_to_sparse_file(sock, req.start_pos, fl.length, file_name, read_write_buff);
         printf("OK: Saved file in tmp folder\n");
       } else {

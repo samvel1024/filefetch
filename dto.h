@@ -35,7 +35,8 @@
             (ntoh, __VA_ARGS__) \
     } \
     int name##_send(struct name *t, int sock) { \
-      name a = *t; \
+      name a; \
+      memcpy(&a, t, sizeof(name)); \
       name##_hton(&a); \
       if (write(sock, &a, sizeof(name)) < 0) return -1; \
       return 0; \

@@ -89,7 +89,6 @@ int read_whole_payload(int sock, char *buff, const int size) {
     read_bytes += just_read;
   } while (read_bytes < size);
   assert(read_bytes == size && "read more bytes than needed");
-  buff[size] = '\0';
   return size;
 }
 
