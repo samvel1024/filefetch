@@ -41,82 +41,95 @@ int initialize(char *host, char *port) {
   return sock;
 }
 
-int fetch_file_list(char *host, char *port, char *buff) {
-  int sock = initialize(host, port);
+int fetch_file_list(int sock, char *buff) {
   type_header th = {.type = 1};
-  IF_NEGATIVE_RETURN(type_header_send(&th, sock));
+  TRY(type_header_send(&th, sock));
   type_header resp;
-  IF_NEGATIVE_RETURN(type_header_receive(sock, &resp));
+  TRY(type_header_receive(sock, &resp));
   assert(resp.type == 1 && "Unexpected response");
   res_list res;
-  IF_NEGATIVE_RETURN(res_list_receive(sock, &res));
+  TRY(res_list_receive(sock, &res));
   if (res.length > 0) {
     read_whole_payload(sock, buff, res.length);
     pretty_print(buff, res.length);
+  }else {
+    printf("No files to serve");
   }
+  return res.length;
+}
+
+int fetch_file(int sock, char *file_list){
+  char *file_name = malloc(FILE_NAME_BUFF_SIZE);
+  char *read_write_buff = malloc(READ_WRITE_BUFF_SIZE);
+
+  long file_id, begin, end;
+  if (scanf("%ld %ld %ld", &file_id, &begin, &end) != 3) { // read all numbers from the standard input
+    printf("Illegal input");
+  }
+  if (get_file_name(file_id - 1, file_list, file_name) < 0) {
+    printf("Illegal file number\n");
+    return 1;
+  } else if (begin < 0) {
+    printf("Illegal starting address\n");
+    return 1;
+  } else if (end < begin) {
+    printf("End address should be greater than begin address\n");
+    return 1;
+  }
+
+  printf("Trying to fetch file %s\n", file_name);
+
+  //Send type header
+  type_header hd = {.type = 2};
+  type_header_send(&hd, sock);
+
+  //Send the request
+  req_file req;
+  req.name_len = get_file_name(file_id - 1, file_list, file_name);
+  req.start_pos = begin;
+  req.byte_count = end - begin;
+  TRY(req_file_send(&req, sock));
+  TRY(write(sock, file_name, req.name_len));
+  //Expect the response
+  type_header rhd;
+  TRY(type_header_receive(sock, &rhd));
+  switch (rhd.type) {
+    case RES_ERR: {
+      res_error err;
+      TRY(res_error_receive(sock, &err));
+      assert(err.type < 4 && err.type > 0 && "Invalid error code");
+      printf("%s\n", ERROR_MSG[err.type]);
+      break;
+    }
+    case RES_FILE: {
+      res_file fl;
+      TRY(res_file_receive(sock, &fl));
+      if (fl.length > 0) {
+        copy_to_sparse_file(sock, req.start_pos, fl.length, file_name, read_write_buff);
+        printf("OK: Saved file in tmp folder\n");
+      } else {
+        printf("OK: Got empty response\n");
+      }
+      break;
+    }
+    default: assert(false && "Unexpected response");
+  }
+  free(file_name);
+  free(read_write_buff);
   return 0;
 }
 
 
 int main(int argc, char *argv[]) {
   char *file_list = malloc(FILE_LIST_BUFF);
-  char *file_name = malloc(FILE_NAME_BUFF_SIZE);
-  char *read_write_buff = malloc(READ_WRITE_BUFF_SIZE);
-  IF_NEGATIVE_RETURN(fetch_file_list(argv[1], argv[2], file_list));
 
-  long file_id, begin, end, sock;
-  while (scanf("%ld %ld %ld", &file_id, &begin, &end) == 3) { // read all numbers from the standard input
-
-    if (get_file_name(file_id - 1, file_list, file_name) < 0) {
-      printf("Illegal file number\n");
-      continue;
-    } else if (begin < 0) {
-      printf("Illegal starting address\n");
-      continue;
-    } else if (end < begin) {
-      printf("End address should be greater than begin address\n");
-      continue;
-    }
-
-    sock = initialize(argv[1], argv[2]);
-
-    //Send type header
-    type_header hd = {.type = 2};
-    type_header_send(&hd, sock);
-
-    //Send the request
-    req_file req;
-    req.name_len = get_file_name(file_id - 1, file_list, file_name);
-    req.start_pos = begin;
-    req.byte_count = end - begin;
-    IF_NEGATIVE_RETURN(req_file_send(&req, sock));
-    IF_NEGATIVE_RETURN(write(sock, file_name, req.name_len));
-    //Expect the response
-    type_header rhd;
-    IF_NEGATIVE_RETURN(type_header_receive(sock, &rhd));
-    switch (rhd.type) {
-      case RES_ERR: {
-        res_error err;
-        IF_NEGATIVE_RETURN(res_error_receive(sock, &err));
-        assert(err.type < 4 && err.type > 0 && "Invalid error code");
-        printf("%s\n", ERROR_MSG[err.type]);
-        break;
-      }
-      case RES_FILE: {
-        res_file fl;
-        IF_NEGATIVE_RETURN(res_file_receive(sock, &fl));
-        if (fl.length > 0) {
-          copy_to_sparse_file(sock, req.start_pos, fl.length, file_name, read_write_buff);
-        }
-        break;
-      }
-      default: assert(false && "Unexpected response");
-    }
-    close(sock);
+  int sock = initialize(argv[1], argv[2]);
+  int file_len;
+  TRY(file_len = fetch_file_list(sock, file_list));
+  if (file_len > 0) {
+    fetch_file(sock, file_list);
   }
-
-  if (close(sock) < 0) // file_desc would be closed anyway when the program ends
-    syserr("close");
+  TRY(close(sock));
   free(file_list);
   return 0;
 }

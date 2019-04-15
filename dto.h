@@ -41,9 +41,11 @@
       return 0; \
     } \
     int name##_receive(int sock, struct name *t) { \
-      if (read_whole_payload(sock, (char*)t, sizeof(name)) < 0) return -1; \
-      name##_ntoh(t); \
-      return 0; \
+      int size; \
+      if ((size = read_whole_payload(sock, (char*)t, sizeof(name))) < 0) return -1; \
+      if (size > 0) \
+        name##_ntoh(t); \
+      return size; \
     }
 
 NETSTRUCT(type_header,

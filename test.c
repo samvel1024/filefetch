@@ -25,12 +25,13 @@ void test_serialize_deserialize() {
   CHECK_EQUAL(30, test.start_pos);
 }
 
-void test_scan() {
+int test_scan() {
   struct for_each_file_acc acc;
   memset(&acc, 0, sizeof(acc));
   acc.file_desc = STDOUT_FILENO;
-  for_each_file("./", &acc, for_each_file_measure);
-  for_each_file("./", &acc, for_each_file_send);
+  TRY(for_each_file("serve", &acc, for_each_file_measure));
+  TRY(for_each_file("serve", &acc, for_each_file_send));
+  return 0;
 }
 
 void test_segment() {
@@ -47,14 +48,14 @@ void test_segment() {
 
 int test_buffered_read(){
   int fd;
-  IF_NEGATIVE_RETURN(fd = open("CMakeCache.txt", O_RDWR | O_CREAT, S_IRUSR));
+  TRY(fd = open("CMakeCache.txt", O_RDWR | O_CREAT, S_IRUSR));
   lseek(fd, 10000000, SEEK_SET);
   char buf[100];
   struct buffered_reader
       br = {.buffer_max_size = 2, .buffer = buf, .bytes_to_read = 20, .source_fd = fd, .buffer_filled = 0};
 
   while (br.bytes_to_read) {
-    IF_NEGATIVE_RETURN(read_to_buffer(&br));
+    TRY(read_to_buffer(&br));
     write(STDOUT_FILENO, br.buffer, br.buffer_filled);
   }
   return 0;
@@ -63,7 +64,5 @@ int test_buffered_read(){
 
 
 int main() {
-  char *buf = malloc(READ_WRITE_BUFF_SIZE);
-  IF_NEGATIVE_RETURN(copy_to_sparse_file(STDIN_FILENO, 2, 1, "bik", buf));
-
+  return test_scan();
 }
