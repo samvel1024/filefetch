@@ -46,7 +46,7 @@ struct buffered_reader {
   char *buffer;
   int buffer_max_size;
   int buffer_filled;
-  int bytes_to_read;
+  uint32_t bytes_to_read;
 };
 void buffered_reader_init(struct buffered_reader *b, int fd, char *buf, uint32_t buf_size, uint32_t byte_count);
 

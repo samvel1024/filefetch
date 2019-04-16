@@ -41,7 +41,7 @@ int send_error(int sock, res_error_type er) {
   return 0;
 }
 
-int resp_len(int from, int byte_count, int fsize) {
+uint32_t resp_len(uint32_t from, uint32_t byte_count, uint32_t fsize) {
   int max = fsize - from;
   return byte_count < max ? byte_count : max;
 }
@@ -87,6 +87,7 @@ int main(int argc, char *argv[]) {
       int bytes_read;
       TRY(bytes_read = type_header_receive(client_sock, &head));
       if (bytes_read == 0) {
+        printf("Served OK: closing connection\n");
         close(client_sock);
         break;
       }
